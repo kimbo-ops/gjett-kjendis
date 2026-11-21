@@ -8,6 +8,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0b1020">
   <meta name="format-detection" content="telephone=no">
+  <meta name="gjett-version" content="tilt-2">
   <title>Gjett kjendis</title>
   <script>document.documentElement.className += " js-capable";</script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' x='8' font-size='48'%3E%F0%9F%8E%AD%3C/text%3E%3C/svg%3E">
@@ -553,6 +554,14 @@
       </div>
       <button type="button" class="switch" id="invert-toggle" aria-pressed="false" aria-label="Vend tilt-retning"><i></i></button>
     </div>
+    <div id="sens-row" style="display:none">
+      <span class="section-label">Tilt-følsomhet</span>
+      <div class="pills" id="sens-pills">
+        <button type="button" class="pill selected" data-sens="lav">Lav</button>
+        <button type="button" class="pill" data-sens="middels">Middels</button>
+        <button type="button" class="pill" data-sens="hoy">Høy</button>
+      </div>
+    </div>
 
     <div class="actions">
       <button type="button" class="btn-start" id="btn-start">Start runden</button>
@@ -805,6 +814,7 @@
       tiltOn: false,
       tiltInverted: false,
       tiltReady: false,
+      tiltSensitivity: "lav",
       playing: false,
       accepting: false,
       deck: [],
@@ -816,7 +826,15 @@
       wakeLock: null,
       baseline: null,
       tiltState: "neutral",
-      lastOrientation: null
+      lastOrientation: null,
+      lastMotionG: null,
+      motionZSign: 1,
+      calibVec: null,
+      smoothedAngle: null,
+      pendingSince: 0,
+      tiltCooldownUntil: 0,
+      calibSamples: [],
+      lastTiltSampleTime: 0
     };
 
     var audioCtx = null;
@@ -989,7 +1007,8 @@
           category: state.category,
           duration: state.duration,
           tiltOn: state.tiltOn,
-          tiltInverted: state.tiltInverted
+          tiltInverted: state.tiltInverted,
+          tiltSensitivity: state.tiltSensitivity
         }));
       } catch (e) {}
     }
@@ -1001,6 +1020,9 @@
         if (s.category) state.category = s.category;
         if (s.duration === 60 || s.duration === 90 || s.duration === 120) state.duration = s.duration;
         if (s.tiltInverted) state.tiltInverted = true;
+        if (s.tiltSensitivity === "lav" || s.tiltSensitivity === "middels" || s.tiltSensitivity === "hoy") {
+          state.tiltSensitivity = s.tiltSensitivity;
+        }
       } catch (e) {}
     }
 
@@ -1094,67 +1116,234 @@
       }
     }
 
-    function orientationAngle() {
-      if (screen.orientation && typeof screen.orientation.angle === "number") {
-        return screen.orientation.angle;
-      }
-      if (typeof window.orientation === "number") return window.orientation;
-      return window.innerWidth > window.innerHeight ? 90 : 0;
+    var TILT_SENS = {
+      lav: { trigger: 40, hold: 300, returnTo: 18, cooldown: 1100, tau: 0.09, calibMs: 250 },
+      middels: { trigger: 36, hold: 250, returnTo: 16, cooldown: 1000, tau: 0.07, calibMs: 220 },
+      hoy: { trigger: 28, hold: 200, returnTo: 14, cooldown: 800, tau: 0.05, calibMs: 180 }
+    };
+
+    function tiltCfg() {
+      return TILT_SENS[state.tiltSensitivity] || TILT_SENS.lav;
     }
 
-    function pitchFromEvent(e) {
+    function nowMs() {
+      return Date.now();
+    }
+
+    function orientationAngle() {
+      if (typeof state.angleOverride === "number") return state.angleOverride;
+      var a = 0;
+      try {
+        if (screen.orientation && typeof screen.orientation.angle === "number") a = screen.orientation.angle;
+        else if (typeof window.orientation === "number") a = window.orientation;
+        else a = (window.innerWidth > window.innerHeight) ? 90 : 0;
+      } catch (e) {
+        a = (typeof window.innerWidth === "number" && window.innerWidth > window.innerHeight) ? 90 : 0;
+      }
+      a = ((a % 360) + 360) % 360;
+      if (a > 45 && a <= 135) return 90;
+      if (a > 135 && a <= 225) return 180;
+      if (a > 225 && a <= 315) return 270;
+      return 0;
+    }
+
+    function gravityFromOrientation(e) {
       var beta = typeof e.beta === "number" ? e.beta : 0;
       var gamma = typeof e.gamma === "number" ? e.gamma : 0;
+      var b = beta * Math.PI / 180;
+      var g = gamma * Math.PI / 180;
+      return {
+        x: Math.sin(g),
+        y: -Math.sin(b) * Math.cos(g),
+        z: -Math.cos(b) * Math.cos(g)
+      };
+    }
+
+    function gravityCssUp(grav, angle) {
+      if (angle === 90) return -grav.x;
+      if (angle === 180) return -grav.y;
+      if (angle === 270) return grav.x;
+      return grav.y;
+    }
+
+    function signedTiltFromCalib(gUp, gz, calib) {
+      var dot = calib.gUp * gUp + calib.gz * gz;
+      var cross = calib.gUp * gz - calib.gz * gUp;
+      var deg = Math.atan2(cross, dot) * 180 / Math.PI;
+      if (state.tiltInverted) deg = -deg;
+      return deg;
+    }
+
+    function currentGravity() {
+      var motion = state.lastMotionG;
+      var ori = state.lastOrientation ? gravityFromOrientation(state.lastOrientation) : null;
+      if (motion && ori && Math.abs(motion.z) > 2 && Math.abs(ori.z) > 0.15) {
+        if (motion.z * ori.z * state.motionZSign < 0) state.motionZSign = -state.motionZSign;
+      }
+      if (motion) {
+        var mag = Math.sqrt(motion.x * motion.x + motion.y * motion.y + motion.z * motion.z);
+        if (mag >= 4) {
+          return { x: motion.x / mag, y: motion.y / mag, z: (motion.z / mag) * state.motionZSign };
+        }
+      }
+      return ori;
+    }
+
+    function resetTiltForWord() {
+      state.tiltState = "calibrating";
+      state.calibSamples = [];
+      state.calibVec = null;
+      state.baseline = null;
+      state.smoothedAngle = null;
+      state.pendingSince = 0;
+      state.lastTiltSampleTime = 0;
+    }
+
+    function finishCalibration(samples) {
+      var i, su = 0, sz = 0, n = samples.length || 1;
+      for (i = 0; i < samples.length; i++) {
+        su += samples[i].gUp;
+        sz += samples[i].gz;
+      }
+      state.calibVec = { gUp: su / n, gz: sz / n };
+      state.baseline = 0;
+      state.smoothedAngle = 0;
+      state.tiltState = "neutral";
+    }
+
+    function processTiltSample(now) {
+      if (!state.tiltOn || !state.playing) return null;
+      var grav = currentGravity();
+      if (!grav) return null;
       var angle = orientationAngle();
-      var pitch;
-      if (angle === 90) pitch = gamma;
-      else if (angle === -90 || angle === 270) pitch = -gamma;
-      else if (angle === 180) pitch = 90 - beta;
-      else pitch = beta - 90;
-      if (state.tiltInverted) pitch = -pitch;
-      return pitch;
+      var gUp = gravityCssUp(grav, angle);
+      var gz = grav.z;
+      var cfg = tiltCfg();
+      var deg = 0;
+
+      if (state.tiltState === "calibrating") {
+        state.calibSamples.push({ gUp: gUp, gz: gz, t: now });
+        var samples = state.calibSamples;
+        var first = samples[0].t;
+        var elapsed = now - first;
+        if (elapsed >= cfg.calibMs && samples.length >= 4) {
+          var j, mu = 0, mz = 0;
+          for (j = 0; j < samples.length; j++) { mu += samples[j].gUp; mz += samples[j].gz; }
+          mu /= samples.length; mz /= samples.length;
+          var v = 0;
+          for (j = 0; j < samples.length; j++) {
+            var du = samples[j].gUp - mu;
+            var dz = samples[j].gz - mz;
+            v += du * du + dz * dz;
+          }
+          v /= samples.length;
+          if (v < 0.04 || elapsed >= 600) finishCalibration(samples);
+        } else if (elapsed >= 700) {
+          finishCalibration(samples);
+        }
+        return 0;
+      }
+
+      if (!state.calibVec) return null;
+      deg = signedTiltFromCalib(gUp, gz, state.calibVec);
+      if (state.smoothedAngle == null || !state.lastTiltSampleTime) {
+        state.smoothedAngle = deg;
+      } else {
+        var dt = Math.min(0.12, Math.max(0, (now - state.lastTiltSampleTime) / 1000));
+        var k = 1 - Math.exp(-dt / (cfg.tau || 0.09));
+        state.smoothedAngle += (deg - state.smoothedAngle) * k;
+      }
+      state.lastTiltSampleTime = now;
+      var delta = state.smoothedAngle;
+
+      if (now < (state.tiltCooldownUntil || 0)) {
+        if (Math.abs(delta) < cfg.returnTo && state.tiltState === "recover") state.tiltState = "neutral";
+        return delta;
+      }
+
+      if (state.tiltState === "recover") {
+        if (Math.abs(delta) < cfg.returnTo) state.tiltState = "neutral";
+        return delta;
+      }
+
+      if (!state.accepting) return delta;
+
+      if (state.tiltState === "neutral") {
+        if (delta <= -cfg.trigger) {
+          state.tiltState = "pending-down";
+          state.pendingSince = now;
+        } else if (delta >= cfg.trigger) {
+          state.tiltState = "pending-up";
+          state.pendingSince = now;
+        }
+        return delta;
+      }
+
+      if (state.tiltState === "pending-down") {
+        if (delta > -cfg.trigger * 0.75) {
+          state.tiltState = "neutral";
+          state.pendingSince = 0;
+        } else if (now - state.pendingSince >= cfg.hold) {
+          state.tiltState = "recover";
+          state.tiltCooldownUntil = now + cfg.cooldown;
+          answer(true);
+        }
+        return delta;
+      }
+
+      if (state.tiltState === "pending-up") {
+        if (delta < cfg.trigger * 0.75) {
+          state.tiltState = "neutral";
+          state.pendingSince = 0;
+        } else if (now - state.pendingSince >= cfg.hold) {
+          state.tiltState = "recover";
+          state.tiltCooldownUntil = now + cfg.cooldown;
+          answer(false);
+        }
+      }
+      return delta;
     }
 
     function onOrientation(e) {
-      state.lastOrientation = e;
-      if (!state.playing || !state.tiltOn || !state.accepting) return;
-      var pitch = pitchFromEvent(e);
-      if (state.baseline == null) {
-        state.baseline = pitch;
-        state.tiltState = "neutral";
-        return;
-      }
-      var delta = pitch - state.baseline;
-      if (state.tiltState === "neutral") {
-        if (delta < -28) {
-          state.tiltState = "down";
-          answer(true);
-        } else if (delta > 28) {
-          state.tiltState = "up";
-          answer(false);
-        }
-      } else if (Math.abs(delta) < 14) {
-        state.tiltState = "neutral";
-      }
+      try {
+        state.lastOrientation = e;
+        processTiltSample(nowMs());
+      } catch (err) {}
+    }
+
+    function onMotion(e) {
+      try {
+        var a = e && e.accelerationIncludingGravity;
+        if (!a || a.x == null || a.y == null || a.z == null) return;
+        state.lastMotionG = { x: a.x, y: a.y, z: a.z };
+        processTiltSample(nowMs());
+      } catch (err) {}
     }
 
     function startTiltListening() {
       if (state.tiltReady) return;
-      window.addEventListener("deviceorientation", onOrientation, true);
+      try { window.addEventListener("deviceorientation", onOrientation, true); } catch (e) {}
+      try { window.addEventListener("devicemotion", onMotion, true); } catch (e) {}
       state.tiltReady = true;
+    }
+
+    async function requestSensorPermission(Ctor) {
+      if (typeof Ctor !== "undefined" && typeof Ctor.requestPermission === "function") {
+        var perm = await Ctor.requestPermission();
+        return perm === "granted";
+      }
+      return true;
     }
 
     async function enableTiltFromUserGesture() {
       try {
-        if (typeof DeviceOrientationEvent !== "undefined" &&
-            typeof DeviceOrientationEvent.requestPermission === "function") {
-          var perm = await DeviceOrientationEvent.requestPermission();
-          if (perm !== "granted") {
-            state.tiltOn = false;
-            updateTiltUI();
-            alert("Tilt ble ikke tillatt. Du kan fortsatt spille ved å trykke på venstre og høyre side av skjermen.");
-            return false;
-          }
+        var oriOk = await requestSensorPermission(typeof DeviceOrientationEvent !== "undefined" ? DeviceOrientationEvent : undefined);
+        try { await requestSensorPermission(typeof DeviceMotionEvent !== "undefined" ? DeviceMotionEvent : undefined); } catch (e) {}
+        if (!oriOk) {
+          state.tiltOn = false;
+          updateTiltUI();
+          alert("Tilt ble ikke tillatt. Du kan fortsatt spille ved å trykke på venstre og høyre side av skjermen.");
+          return false;
         }
         startTiltListening();
         state.tiltOn = true;
@@ -1173,9 +1362,58 @@
       $("tilt-toggle").classList.toggle("on", state.tiltOn);
       $("tilt-toggle").setAttribute("aria-pressed", state.tiltOn ? "true" : "false");
       $("invert-row").style.display = state.tiltOn ? "flex" : "none";
+      $("sens-row").style.display = state.tiltOn ? "block" : "none";
       $("invert-toggle").classList.toggle("on", state.tiltInverted);
       $("invert-toggle").setAttribute("aria-pressed", state.tiltInverted ? "true" : "false");
+      var pills = document.querySelectorAll("#sens-pills .pill");
+      for (var i = 0; i < pills.length; i++) {
+        pills[i].classList.toggle("selected", pills[i].getAttribute("data-sens") === state.tiltSensitivity);
+      }
     }
+
+    window.__gjettTilt = {
+      version: "tilt-2",
+      orientationAngle: orientationAngle,
+      gravityFromOrientation: gravityFromOrientation,
+      gravityCssUp: gravityCssUp,
+      signedTiltFromCalib: signedTiltFromCalib,
+      processTiltSample: processTiltSample,
+      resetTiltForWord: resetTiltForWord,
+      tiltCfg: tiltCfg,
+      setAngleOverride: function (a) { state.angleOverride = a; },
+      setTiltOn: function (v) { state.tiltOn = !!v; if (v) startTiltListening(); },
+      setInverted: function (v) { state.tiltInverted = !!v; },
+      setSensitivity: function (v) { state.tiltSensitivity = v; },
+      setAccepting: function (v) { state.accepting = !!v; },
+      getState: function () {
+        return {
+          tiltState: state.tiltState,
+          smoothed: state.smoothedAngle,
+          accepting: state.accepting,
+          playing: state.playing,
+          tiltOn: state.tiltOn,
+          inverted: state.tiltInverted,
+          sensitivity: state.tiltSensitivity,
+          cooldownUntil: state.tiltCooldownUntil,
+          hasCalib: !!state.calibVec
+        };
+      },
+      injectOrientation: function (beta, gamma, t) {
+        state.lastOrientation = { beta: beta, gamma: gamma };
+        return processTiltSample(typeof t === "number" ? t : nowMs());
+      },
+      injectMotion: function (x, y, z, t) {
+        state.lastMotionG = { x: x, y: y, z: z };
+        return processTiltSample(typeof t === "number" ? t : nowMs());
+      },
+      beginTestRound: function () {
+        state.playing = true;
+        state.accepting = true;
+        state.tiltOn = true;
+        state.current = "Testperson";
+        resetTiltForWord();
+      }
+    };
 
     function nextName() {
       if (!state.deck.length) {
@@ -1185,8 +1423,7 @@
       state.current = state.deck.shift();
       $("person-name").textContent = state.current;
       fitName();
-      state.baseline = state.lastOrientation ? pitchFromEvent(state.lastOrientation) : null;
-      state.tiltState = "neutral";
+      resetTiltForWord();
       return true;
     }
 
@@ -1429,6 +1666,17 @@
 
     onTap($("invert-toggle"), function () {
       state.tiltInverted = !state.tiltInverted;
+      updateTiltUI();
+      saveSettings();
+    });
+
+    onTap($("sens-pills"), function (e) {
+      if (!e || !e.target) return;
+      var btn = e.target.closest ? e.target.closest(".pill") : e.target;
+      if (!btn || !btn.getAttribute) return;
+      var val = btn.getAttribute("data-sens");
+      if (val !== "lav" && val !== "middels" && val !== "hoy") return;
+      state.tiltSensitivity = val;
       updateTiltUI();
       saveSettings();
     });
