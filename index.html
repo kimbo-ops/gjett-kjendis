@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="format-detection" content="telephone=no">
+  <title>Gjett kjendis</title>
+  <script>document.documentElement.className += " js-capable";</script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' x='8' font-size='48'%3E%F0%9F%8E%AD%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-2: #14192e;
+      --card: #1c2340;
+      --card-2: #252d4d;
+      --text: #f4f1ea;
+      --muted: #a8b0c7;
+      --accent: #f5c15a;
+      --accent-2: #ff7a59;
+      --green: #3ddc8a;
+      --green-dim: #1a6b45;
+      --red: #ff5a6a;
+      --red-dim: #7a2430;
+      --line: rgba(255,255,255,0.1);
+      --shadow: 0 12px 40px rgba(0,0,0,0.35);
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      overscroll-behavior: none;
+    }
+    body {
+      min-height: 100dvh;
+    }
+    button, input, textarea {
+      font-family: inherit;
+    }
+    button, .cat, .pill, .switch, .hit-left, .hit-right {
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    button {
+      cursor: pointer;
+      border: 0;
+      color: inherit;
+      position: relative;
+      z-index: 2;
+    }
+    .nojs-msg {
+      display: block;
+      margin: 0 0 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #3a1c24;
+      border: 1px solid rgba(255,90,106,0.4);
+      color: #ffd6da;
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+    .nojs-msg a { color: var(--accent); font-weight: 700; }
+    .js-capable .nojs-msg { display: none; }
+    .boot-error {
+      display: none;
+      margin: 0 0 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #3a1c24;
+      border: 1px solid rgba(255,90,106,0.4);
+      color: #ffd6da;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .screen {
+      display: none;
+      min-height: 100dvh;
+      width: 100%;
+    }
+    .screen.active { display: block; }
+    #screen-game.active, #screen-countdown.active {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100dvh;
+      max-height: 100dvh;
+    }
+
+    /* —— Meny —— */
+    #screen-menu {
+      padding: calc(18px + var(--safe-t)) 18px calc(20px + var(--safe-b));
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(245,193,90,0.14), transparent 55%),
+        radial-gradient(900px 500px at 110% 0%, rgba(255,122,89,0.16), transparent 50%),
+        var(--bg);
+    }
+    .brand {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(245,193,90,0.12);
+      color: var(--accent);
+      border: 1px solid rgba(245,193,90,0.28);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.85rem, 7vw, 2.6rem);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+    .tagline {
+      margin: 0 auto;
+      max-width: 26rem;
+      color: var(--muted);
+      font-size: 1.02rem;
+      line-height: 1.45;
+    }
+    .how {
+      margin: 10px auto 0;
+      max-width: 32rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 9px 12px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+    .section-label {
+      display: block;
+      margin: 12px 0 7px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .cats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .cat {
+      background: var(--card);
+      border: 2px solid transparent;
+      border-radius: 16px;
+      padding: 10px 10px;
+      text-align: left;
+      min-height: 54px;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    }
+    .cat:active { transform: scale(0.98); }
+    .cat.selected {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, rgba(245,193,90,0.16), rgba(245,193,90,0.05));
+    }
+    .cat-name { display: block; font-weight: 750; font-size: 0.98rem; }
+    .cat-count { display: block; margin-top: 4px; font-size: 0.78rem; color: var(--muted); }
+    .pills {
+      display: flex;
+      gap: 8px;
+    }
+    .pill {
+      flex: 1;
+      background: var(--card);
+      border: 2px solid transparent;
+      border-radius: 14px;
+      padding: 11px 8px;
+      font-weight: 750;
+      font-size: 0.98rem;
+    }
+    .pill.selected {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, rgba(245,193,90,0.16), rgba(245,193,90,0.05));
+      color: var(--accent);
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 11px 14px;
+      margin-top: 10px;
+    }
+    .toggle-row span { font-weight: 650; font-size: 0.98rem; }
+    .toggle-row small { display: block; color: var(--muted); font-weight: 500; margin-top: 3px; }
+    .switch {
+      position: relative;
+      width: 52px;
+      height: 32px;
+      flex-shrink: 0;
+      background: #3a4263;
+      border-radius: 999px;
+      transition: background 0.2s;
+    }
+    .switch.on { background: #2a8a58; }
+    .switch i {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 26px;
+      height: 26px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      display: block;
+    }
+    .switch.on i { transform: translateX(20px); }
+    .actions {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn-start {
+      background: linear-gradient(180deg, #ffd27a, var(--accent) 40%, #d4a23a);
+      color: #2a1d04;
+      font-weight: 850;
+      font-size: 1.2rem;
+      letter-spacing: 0.01em;
+      border-radius: 18px;
+      padding: 15px 16px;
+      box-shadow: 0 8px 24px rgba(245,193,90,0.28);
+    }
+    .btn-start:active { transform: scale(0.98); }
+    .btn-start:disabled { opacity: 0.45; }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 11px 16px;
+      font-weight: 650;
+      color: var(--text);
+    }
+
+    /* —— Egne navn —— */
+    #screen-custom {
+      padding: calc(20px + var(--safe-t)) 20px calc(24px + var(--safe-b));
+      background: var(--bg);
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .icon-btn {
+      background: var(--card);
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .topbar h2 { margin: 0; font-size: 1.25rem; }
+    .custom-add {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .custom-add input, #custom-bulk {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+    .custom-add button, .btn-mini {
+      background: var(--accent);
+      color: #2a1d04;
+      font-weight: 800;
+      border-radius: 12px;
+      padding: 0 16px;
+    }
+    .btn-mini { padding: 10px 14px; font-size: 0.9rem; }
+    #custom-bulk {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      margin: 8px 0;
+    }
+    .hint { color: var(--muted); font-size: 0.85rem; margin: 0 0 12px; }
+    .custom-list { list-style: none; margin: 0; padding: 0; }
+    .custom-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+    }
+    .custom-list button {
+      background: transparent;
+      color: var(--red);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 6px;
+    }
+    .empty-custom { color: var(--muted); text-align: center; padding: 24px 8px; }
+
+    /* —— Nedtelling og spill —— */
+    #screen-countdown, #screen-game {
+      background: #0a0e1c;
+      position: relative;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .game-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: calc(10px + var(--safe-t)) calc(16px + var(--safe-r)) 8px calc(16px + var(--safe-l));
+      z-index: 3;
+      position: relative;
+    }
+    .timer {
+      font-variant-numeric: tabular-nums;
+      font-weight: 850;
+      font-size: clamp(1.4rem, 5vh, 2rem);
+      letter-spacing: 0.02em;
+    }
+    .score-live { font-weight: 750; font-size: 1.05rem; color: var(--accent); }
+    .abort {
+      background: transparent;
+      color: var(--muted);
+      font-weight: 650;
+      font-size: 0.9rem;
+      padding: 8px;
+    }
+    .stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 8px 16px;
+    }
+    .count-num {
+      font-size: min(42vw, 42vh, 220px);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      animation: pop 0.45s ease;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.55); opacity: 0.2; }
+      60% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .name-wrap {
+      width: 100%;
+      text-align: center;
+      padding: 0 4vw;
+      z-index: 2;
+    }
+    #person-name {
+      margin: 0;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 0.95;
+      word-break: break-word;
+      font-size: clamp(2.4rem, 11vw, 7.5rem);
+    }
+    .feedback-label {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(3rem, 14vw, 8rem);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .feedback-label.show { display: flex; }
+    .hit-left, .hit-right {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 50%;
+      z-index: 1;
+    }
+    .hit-left { left: 0; }
+    .hit-right { right: 0; }
+    .edge-hint {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      font-size: 0.78rem;
+      opacity: 0.35;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .edge-hint.pass { left: calc(8px + var(--safe-l)); color: var(--red); transform: translateY(-50%) rotate(180deg); }
+    .edge-hint.ok { right: calc(8px + var(--safe-r)); color: var(--green); }
+    .game-flash {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 3;
+      transition: opacity 0.12s;
+    }
+    .game-flash.green { background: #1f8a52; opacity: 1; }
+    .game-flash.red { background: #b43340; opacity: 1; }
+    .rotate-hint {
+      display: none;
+      position: absolute;
+      bottom: calc(12px + var(--safe-b));
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      z-index: 5;
+    }
+    @media (orientation: portrait) and (max-width: 700px) {
+      #screen-game.active .rotate-hint { display: block; }
+    }
+
+    /* —— Resultat —— */
+    #screen-end {
+      padding: calc(24px + var(--safe-t)) 20px calc(28px + var(--safe-b));
+      background:
+        radial-gradient(900px 420px at 50% -10%, rgba(245,193,90,0.16), transparent 55%),
+        var(--bg);
+    }
+    .end-hero { text-align: center; margin-bottom: 18px; }
+    .end-hero h2 { margin: 0 0 6px; font-size: 1.15rem; color: var(--muted); font-weight: 650; }
+    .end-score {
+      font-size: clamp(3.2rem, 16vw, 5.5rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--accent);
+    }
+    .end-sub { color: var(--muted); margin-top: 6px; }
+    .results {
+      list-style: none;
+      margin: 0 0 20px;
+      padding: 0;
+      max-width: 36rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .results li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 11px 14px;
+      margin-bottom: 6px;
+      font-weight: 650;
+    }
+    .mark {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 4px 9px;
+      flex-shrink: 0;
+    }
+    .mark.ok { background: rgba(61,220,138,0.16); color: var(--green); }
+    .mark.pass { background: rgba(255,90,106,0.14); color: var(--red); }
+    .end-actions {
+      max-width: 36rem;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="screen-menu" class="screen active">
+    <noscript>
+      <div class="nojs-msg">Dette spillet trenger JavaScript. Åpne siden i Safari eller Chrome — ikke i en fil-forhåndsvisning. Bruk gjerne lenken: <a href="https://kimbo-ops.github.io/gjett-kjendis/">https://kimbo-ops.github.io/gjett-kjendis/</a></div>
+    </noscript>
+    <div class="nojs-msg" id="nojs-msg">
+      Hvis knappene ikke virker, er filen sannsynligvis åpnet i en forhåndsvisning som blokkerer JavaScript.
+      Åpne den i Safari eller Chrome, eller gå til
+      <a href="https://kimbo-ops.github.io/gjett-kjendis/">https://kimbo-ops.github.io/gjett-kjendis/</a>
+    </div>
+    <div class="boot-error" id="boot-error"></div>
+    <header class="brand">
+      <div class="brand-badge">Partyspill</div>
+      <h1>Gjett kjendis</h1>
+      <p class="tagline">Hold telefonen mot panna, få hint fra de andre – og gjett hvem det er!</p>
+      <p class="how">De andre forklarer personen uten å si navnet. Høyre side / vipp ned = <strong style="color:var(--green)">Riktig</strong>. Venstre side / vipp opp = <strong style="color:var(--red)">Pass</strong>.</p>
+    </header>
+
+    <span class="section-label">Kategori</span>
+    <div class="cats" id="cat-grid"></div>
+
+    <span class="section-label">Rundelengde</span>
+    <div class="pills" id="duration-pills">
+      <button type="button" class="pill" data-sec="60">60 sek</button>
+      <button type="button" class="pill selected" data-sec="90">90 sek</button>
+      <button type="button" class="pill" data-sec="120">120 sek</button>
+    </div>
+
+    <div class="toggle-row">
+      <div>
+        <span>Tilt-styring</span>
+        <small>Vipp ned = riktig, opp = pass</small>
+      </div>
+      <button type="button" class="switch" id="tilt-toggle" aria-pressed="false" aria-label="Slå på tilt-styring"><i></i></button>
+    </div>
+    <div class="toggle-row" id="invert-row" style="display:none">
+      <div>
+        <span>Vend tilt-retning</span>
+        <small>Bruk hvis opp og ned er byttet om</small>
+      </div>
+      <button type="button" class="switch" id="invert-toggle" aria-pressed="false" aria-label="Vend tilt-retning"><i></i></button>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-start" id="btn-start">Start runden</button>
+      <button type="button" class="btn-ghost" id="btn-custom">Legg til egne navn</button>
+    </div>
+  </div>
+
+  <div id="screen-custom" class="screen">
+    <div class="topbar">
+      <button type="button" class="icon-btn" id="custom-back" aria-label="Tilbake">←</button>
+      <h2>Egne navn</h2>
+    </div>
+    <p class="hint">Legg til personer dere kjenner, kolleger, familie eller andre kjendiser. Listen lagres på denne telefonen.</p>
+    <div class="custom-add">
+      <input id="custom-input" type="text" maxlength="80" placeholder="Skriv et navn og trykk Legg til" autocomplete="off" enterkeyhint="done">
+      <button type="button" id="custom-add-btn">Legg til</button>
+    </div>
+    <textarea id="custom-bulk" placeholder="Eller lim inn flere navn, ett per linje eller atskilt med komma"></textarea>
+    <button type="button" class="btn-mini" id="custom-bulk-btn">Legg til alle</button>
+    <p class="hint" id="custom-count" style="margin-top:14px"></p>
+    <ul class="custom-list" id="custom-list"></ul>
+  </div>
+
+  <div id="screen-countdown" class="screen">
+    <div class="game-top">
+      <span class="timer" id="count-timer">0:00</span>
+      <span></span>
+    </div>
+    <div class="stage">
+      <div class="count-num" id="count-num">3</div>
+    </div>
+  </div>
+
+  <div id="screen-game" class="screen">
+    <div class="game-flash" id="game-flash"></div>
+    <div class="feedback-label" id="feedback-label"></div>
+    <div class="hit-left" id="hit-left"></div>
+    <div class="hit-right" id="hit-right"></div>
+    <div class="game-top">
+      <span class="timer" id="game-timer">0:00</span>
+      <span class="score-live" id="live-score">0 riktig</span>
+      <button type="button" class="abort" id="btn-abort">Avslutt</button>
+    </div>
+    <div class="stage">
+      <div class="name-wrap"><p id="person-name"></p></div>
+    </div>
+    <div class="edge-hint pass">PASS</div>
+    <div class="edge-hint ok">RIKTIG</div>
+    <div class="rotate-hint">Tips: hold telefonen liggende mot panna</div>
+  </div>
+
+  <div id="screen-end" class="screen">
+    <div class="end-hero">
+      <h2 id="end-title">Tiden er ute!</h2>
+      <div class="end-score" id="end-score">0</div>
+      <div class="end-sub" id="end-sub"></div>
+    </div>
+    <ul class="results" id="results"></ul>
+    <div class="end-actions">
+      <button type="button" class="btn-start" id="btn-again">Spill igjen</button>
+      <button type="button" class="btn-ghost" id="btn-home">Til startsiden</button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    function showBootError(err) {
+      try {
+        var el = document.getElementById("boot-error");
+        if (!el) return;
+        el.style.display = "block";
+        el.textContent = "Kunne ikke starte spillet. Åpne siden i Safari eller Chrome, eller bruk https://kimbo-ops.github.io/gjett-kjendis/\n\n" + (err && (err.stack || err.message) ? (err.stack || err.message) : String(err));
+        document.documentElement.className = document.documentElement.className.replace(/js-capable/g, "");
+      } catch (e) {}
+    }
+    try {
+    boot();
+    } catch (err) {
+      showBootError(err);
+    }
+    function boot() {
+
+    var NAMES = {
+      norske: [
+        "Erling Haaland", "Martin Ødegaard", "Ada Hegerberg", "Caroline Graham Hansen",
+        "Therese Johaug", "Johannes Høsflot Klæbo", "Magnus Carlsen", "Ole Gunnar Solskjær",
+        "Karsten Warholm", "Jakob Ingebrigtsen", "Casper Ruud", "Viktor Hovland",
+        "Marit Bjørgen", "Petter Northug", "Aksel Lund Svindal", "Kjetil André Aamodt",
+        "Bjørn Dæhlie", "Henrik Kristoffersen", "Tiril Eckhoff", "John Arne Riise",
+        "John Carew", "Steffen Iversen", "Tore André Flo", "Sander Berge",
+        "Antonio Nusa", "Suzann Pettersen", "Johann Olav Koss", "Grete Waitz",
+        "Sonja Henie", "Kjetil Jansrud", "Jørgen Graabak", "Jarl Magnus Riiber",
+        "Kygo", "Aurora", "Sigrid", "Morten Harket",
+        "Alan Walker", "Astrid S", "Marcus & Martinus", "Girl in Red",
+        "Dagny", "Alexander Rybak", "Kurt Nilsen", "Sissel Kyrkjebø",
+        "Karpe", "Tix", "Matoma", "Susanne Sundfør",
+        "Nico & Vinz", "Madcon", "A-ha", "Röyksopp",
+        "Seeb", "Ina Wroldsen", "Emma Steinbakken", "Cezinando",
+        "Lene Marlin", "Maria Mena", "Odd Nordstoga", "Jahn Teigen",
+        "Wenche Myhre", "Åge Aleksandersen", "Gabrielle", "Adelén",
+        "Aksel Hennie", "Kristofer Hivju", "Liv Ullmann", "Renate Reinsve",
+        "Pia Tjelta", "Ane Dahl Torp", "Jakob Oftebro", "Pål Sverre Hagen",
+        "Anders Baasmo", "Synnøve Macody Lund", "Atle Antonsen", "Else Kåss Furuseth",
+        "Harald Eia", "Bård Tufte Johansen", "Linn Skåber", "Truls Svendsen",
+        "Fredrik Skavlan", "Helene Olafsen", "Solveig Kloppen", "Thomas Giertsen",
+        "Jenny Skavlan", "Sigrid Bonde Tusvik", "Espen Eckbo", "Leo Ajkic",
+        "Katrine Moholt", "Jon Almaas", "Calle Hellevang-Larsen", "Anders Hoff",
+        "Jonas Gahr Støre", "Erna Solberg", "Jens Stoltenberg", "Gro Harlem Brundtland",
+        "Harald V", "Dronning Sonja", "Kronprins Haakon", "Kronprinsesse Mette-Marit",
+        "Prinsesse Märtha Louise", "Jo Nesbø", "Karl Ove Knausgård", "Petter Stordalen",
+        "Kjell Inge Røkke", "Jørn Lier Horst", "Maja Lunde", "Sophie Elise"
+      ],
+      internasjonale: [
+        "Taylor Swift", "Beyoncé", "Rihanna", "Drake",
+        "The Weeknd", "Ed Sheeran", "Adele", "Lady Gaga",
+        "Bruno Mars", "Justin Bieber", "Ariana Grande", "Shakira",
+        "Dua Lipa", "Harry Styles", "Billie Eilish", "Eminem",
+        "Kanye West", "Oprah Winfrey", "Kim Kardashian", "Elon Musk",
+        "Donald Trump", "Barack Obama", "Michelle Obama", "Kong Charles",
+        "Pave Frans", "Cristiano Ronaldo", "Lionel Messi", "Tom Cruise",
+        "Leonardo DiCaprio", "Brad Pitt", "Angelina Jolie", "Jennifer Lawrence",
+        "Scarlett Johansson", "Dwayne Johnson", "Ryan Reynolds", "Zendaya",
+        "Timothée Chalamet", "Margot Robbie", "Chris Hemsworth", "Robert Downey Jr.",
+        "Tom Hanks", "Meryl Streep", "Will Smith", "Morgan Freeman",
+        "Keanu Reeves", "Natalie Portman", "Emma Watson", "Cillian Murphy",
+        "Pedro Pascal", "Joe Biden", "Greta Thunberg", "Malala Yousafzai",
+        "Jeff Bezos", "Mark Zuckerberg", "Bill Gates", "Steve Jobs",
+        "MrBeast", "Kylie Jenner", "Selena Gomez", "Miley Cyrus",
+        "Katy Perry", "Post Malone", "Olivia Rodrigo", "Sabrina Carpenter",
+        "Sydney Sweeney", "Gal Gadot", "Ryan Gosling", "Emma Stone",
+        "Jennifer Aniston", "Johnny Depp", "Kate Middleton", "Prins William",
+        "Prins Harry", "Meghan Markle", "Jackie Chan", "LeBron James",
+        "Michael Jordan", "Serena Williams", "Roger Federer", "Usain Bolt",
+        "BTS", "Bad Bunny", "SZA", "Kendrick Lamar"
+      ],
+      idrett: [
+        "Lionel Messi", "Cristiano Ronaldo", "Erling Haaland", "Kylian Mbappé",
+        "Neymar", "Mohamed Salah", "Pelé", "Diego Maradona",
+        "Zinedine Zidane", "David Beckham", "Ronaldinho", "Luka Modrić",
+        "Robert Lewandowski", "Harry Kane", "Kevin De Bruyne", "Vinícius Júnior",
+        "Jude Bellingham", "Martin Ødegaard", "Ada Hegerberg", "Alexia Putellas",
+        "Megan Rapinoe", "Marta", "Zlatan Ibrahimović", "Wayne Rooney",
+        "Thierry Henry", "Andrés Iniesta", "Xavi", "Johan Cruyff",
+        "Serena Williams", "Venus Williams", "Roger Federer", "Rafael Nadal",
+        "Novak Djokovic", "Carlos Alcaraz", "Iga Świątek", "Naomi Osaka",
+        "Coco Gauff", "Casper Ruud", "LeBron James", "Michael Jordan",
+        "Kobe Bryant", "Stephen Curry", "Magic Johnson", "Shaquille O'Neal",
+        "Giannis Antetokounmpo", "Luka Dončić", "Tom Brady", "Patrick Mahomes",
+        "Tiger Woods", "Rory McIlroy", "Viktor Hovland", "Jack Nicklaus",
+        "Lewis Hamilton", "Max Verstappen", "Michael Schumacher", "Ayrton Senna",
+        "Usain Bolt", "Carl Lewis", "Michael Phelps", "Katie Ledecky",
+        "Simone Biles", "Nadia Comăneci", "Eliud Kipchoge", "Mo Farah",
+        "Jakob Ingebrigtsen", "Karsten Warholm", "Armand Duplantis", "Magnus Carlsen",
+        "Therese Johaug", "Marit Bjørgen", "Petter Northug", "Johannes Høsflot Klæbo",
+        "Ole Einar Bjørndalen", "Aksel Lund Svindal", "Kjetil André Aamodt", "Mikaela Shiffrin",
+        "Lindsey Vonn", "Conor McGregor", "Muhammad Ali", "Mike Tyson",
+        "Floyd Mayweather", "Manny Pacquiao", "Tadej Pogačar", "Jonas Vingegaard",
+        "Wayne Gretzky", "Sidney Crosby", "Ole Gunnar Solskjær", "Caroline Graham Hansen"
+      ],
+      musikk: [
+        "The Beatles", "John Lennon", "Paul McCartney", "Elvis Presley",
+        "Michael Jackson", "Madonna", "Prince", "Freddie Mercury",
+        "David Bowie", "Bob Dylan", "Mick Jagger", "Elton John",
+        "Whitney Houston", "Mariah Carey", "Céline Dion", "Beyoncé",
+        "Taylor Swift", "Adele", "Rihanna", "Lady Gaga",
+        "Bruno Mars", "Ed Sheeran", "Justin Bieber", "Ariana Grande",
+        "Drake", "The Weeknd", "Eminem", "Kanye West",
+        "Jay-Z", "Nicki Minaj", "Dua Lipa", "Harry Styles",
+        "Billie Eilish", "Olivia Rodrigo", "Sabrina Carpenter", "Bad Bunny",
+        "Shakira", "Jennifer Lopez", "Britney Spears", "Katy Perry",
+        "Pink", "Chris Martin", "Bono", "Bruce Springsteen",
+        "Johnny Cash", "Aretha Franklin", "Stevie Wonder", "Tina Turner",
+        "Cher", "ABBA", "Bob Marley", "Kurt Cobain",
+        "Metallica", "AC/DC", "Kygo", "Aurora",
+        "Sigrid", "Alan Walker", "Morten Harket", "A-ha",
+        "Karpe", "Astrid S", "Girl in Red", "Röyksopp",
+        "Alexander Rybak", "Tupac", "Snoop Dogg", "Dr. Dre",
+        "Post Malone", "Travis Scott", "SZA", "Kendrick Lamar",
+        "Lana Del Rey", "Lorde", "Daft Punk", "Calvin Harris",
+        "David Guetta", "Avicii", "Justin Timberlake", "Alicia Keys",
+        "John Legend", "Sam Smith", "BTS", "Blackpink",
+        "Kurt Nilsen", "Susanne Sundfør", "Maria Mena", "Lene Marlin"
+      ],
+      film: [
+        "Tom Hanks", "Meryl Streep", "Leonardo DiCaprio", "Brad Pitt",
+        "Angelina Jolie", "Tom Cruise", "Denzel Washington", "Morgan Freeman",
+        "Robert De Niro", "Al Pacino", "Jack Nicholson", "Harrison Ford",
+        "Samuel L. Jackson", "Scarlett Johansson", "Jennifer Lawrence", "Natalie Portman",
+        "Emma Stone", "Emma Watson", "Anne Hathaway", "Sandra Bullock",
+        "Jennifer Aniston", "Julia Roberts", "Nicole Kidman", "Charlize Theron",
+        "Cate Blanchett", "Viola Davis", "Zendaya", "Timothée Chalamet",
+        "Margot Robbie", "Florence Pugh", "Cillian Murphy", "Christian Bale",
+        "Heath Ledger", "Joaquin Phoenix", "Ryan Gosling", "Ryan Reynolds",
+        "Dwayne Johnson", "Chris Hemsworth", "Chris Evans", "Robert Downey Jr.",
+        "Benedict Cumberbatch", "Tom Holland", "Hugh Jackman", "Keanu Reeves",
+        "Will Smith", "Eddie Murphy", "Jim Carrey", "Adam Sandler",
+        "Robin Williams", "Steve Carell", "Pedro Pascal", "Millie Bobby Brown",
+        "Daniel Radcliffe", "Rupert Grint", "Johnny Depp", "Kate Winslet",
+        "James Cameron", "Steven Spielberg", "Christopher Nolan", "Quentin Tarantino",
+        "Martin Scorsese", "Alfred Hitchcock", "Walt Disney", "George Lucas",
+        "Peter Jackson", "Greta Gerwig", "Clint Eastwood", "Sylvester Stallone",
+        "Arnold Schwarzenegger", "Bruce Willis", "Jackie Chan", "Michelle Yeoh",
+        "Emilia Clarke", "Kit Harington", "Peter Dinklage", "Kristofer Hivju",
+        "Liv Ullmann", "Renate Reinsve", "Aksel Hennie", "Oprah Winfrey",
+        "Matthew McConaughey", "Jake Gyllenhaal", "Amy Adams", "Idris Elba"
+      ],
+      historiske: [
+        "Kleopatra", "Julius Cæsar", "Aleksander den store", "Napoleon",
+        "Jeanne d'Arc", "Dronning Victoria", "Elisabeth I", "Henrik VIII",
+        "Christofer Columbus", "Leiv Eiriksson", "Marco Polo", "Djengis Khan",
+        "Karl den store", "Vilhelm Erobreren", "William Shakespeare", "Leonardo da Vinci",
+        "Michelangelo", "Rembrandt", "Vincent van Gogh", "Claude Monet",
+        "Pablo Picasso", "Wolfgang Amadeus Mozart", "Ludwig van Beethoven", "Johann Sebastian Bach",
+        "Frédéric Chopin", "Galileo Galilei", "Isaac Newton", "Albert Einstein",
+        "Charles Darwin", "Marie Curie", "Louis Pasteur", "Thomas Edison",
+        "Nikola Tesla", "Brødrene Wright", "Henry Ford", "Karl Marx",
+        "Sigmund Freud", "Mahatma Gandhi", "Martin Luther King Jr.", "Nelson Mandela",
+        "Winston Churchill", "Franklin D. Roosevelt", "Abraham Lincoln", "George Washington",
+        "John F. Kennedy", "Anne Frank", "Florence Nightingale", "Rosa Parks",
+        "Fridtjof Nansen", "Roald Amundsen", "Thor Heyerdahl", "Henrik Ibsen",
+        "Bjørnstjerne Bjørnson", "Edvard Grieg", "Edvard Munch", "Ludvig Holberg",
+        "Snorre Sturlason", "Olav den hellige", "Harald Hårfagre", "Eirik Raude",
+        "Håkon VII", "Alfred Nobel", "Tutankhamon", "Hannibal",
+        "Arkimedes", "Kopernikus", "Johannes Kepler", "Alan Turing",
+        "Ada Lovelace", "Prinsesse Diana", "Peter den store", "Katarina den store",
+        "H.C. Andersen", "Charles Dickens", "Jane Austen", "Leo Tolstoj",
+        "Fjodor Dostojevskij", "Astrid Lindgren", "J.R.R. Tolkien", "Jules Verne",
+        "Sokrates", "Aristoteles", "Platon", "Konfucius"
+      ]
+    };
+
+    var CATS = [
+      { id: "norske", label: "Norske kjendiser" },
+      { id: "internasjonale", label: "Internasjonale kjendiser" },
+      { id: "idrett", label: "Idrett" },
+      { id: "musikk", label: "Musikk" },
+      { id: "film", label: "Film og TV" },
+      { id: "historiske", label: "Historiske personer" },
+      { id: "blandet", label: "Blandet" },
+      { id: "egne", label: "Egne navn" }
+    ];
+
+    var STORAGE_NAMES = "gjettKjendis.egneNavn";
+    var STORAGE_SETTINGS = "gjettKjendis.innstillinger";
+
+    var state = {
+      category: "norske",
+      duration: 90,
+      tiltOn: false,
+      tiltInverted: false,
+      tiltReady: false,
+      playing: false,
+      accepting: false,
+      deck: [],
+      current: "",
+      results: [],
+      remaining: 90,
+      timerId: null,
+      countId: null,
+      wakeLock: null,
+      baseline: null,
+      tiltState: "neutral",
+      lastOrientation: null
+    };
+
+    var audioCtx = null;
+    var $ = function (id) { return document.getElementById(id); };
+
+    function unique(list) {
+      var seen = Object.create(null);
+      var out = [];
+      for (var i = 0; i < list.length; i++) {
+        var n = String(list[i] || "").trim();
+        if (!n) continue;
+        var key;
+        try { key = n.toLocaleLowerCase("nb"); } catch (e) { key = n.toLowerCase(); }
+        if (seen[key]) continue;
+        seen[key] = true;
+        out.push(n);
+      }
+      return out;
+    }
+
+    var memoryStore = {};
+    function storageGet(key) {
+      try {
+        if (typeof localStorage !== "undefined") return localStorage.getItem(key);
+      } catch (e) {}
+      return Object.prototype.hasOwnProperty.call(memoryStore, key) ? memoryStore[key] : null;
+    }
+    function storageSet(key, val) {
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem(key, val);
+          return;
+        }
+      } catch (e) {}
+      memoryStore[key] = val;
+    }
+
+    function getCustomNames() {
+      try {
+        var raw = storageGet(STORAGE_NAMES);
+        var parsed = raw ? JSON.parse(raw) : [];
+        return unique(Array.isArray(parsed) ? parsed : []);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveCustomNames(names) {
+      try {
+        storageSet(STORAGE_NAMES, JSON.stringify(unique(names)));
+      } catch (e) {}
+    }
+
+    function mixedNames() {
+      var all = [];
+      var keys = ["norske", "internasjonale", "idrett", "musikk", "film", "historiske"];
+      for (var i = 0; i < keys.length; i++) {
+        all = all.concat(NAMES[keys[i]]);
+      }
+      return unique(all);
+    }
+
+    function namesFor(id) {
+      if (id === "egne") return getCustomNames();
+      if (id === "blandet") return mixedNames();
+      return unique(NAMES[id] || []);
+    }
+
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+      }
+      return a;
+    }
+
+    function showScreen(id) {
+      var screens = document.querySelectorAll(".screen");
+      for (var i = 0; i < screens.length; i++) {
+        screens[i].classList.toggle("active", screens[i].id === id);
+      }
+      if (id === "screen-game" || id === "screen-countdown") {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
+        try { window.scrollTo(0, 0); } catch (e) {}
+      }
+    }
+
+    function fmtTime(sec) {
+      var m = Math.floor(sec / 60);
+      var s = sec % 60;
+      return m + ":" + (s < 10 ? "0" : "") + s;
+    }
+
+    function renderMenu() {
+      var grid = $("cat-grid");
+      grid.innerHTML = "";
+      for (var i = 0; i < CATS.length; i++) {
+        var cat = CATS[i];
+        var count = namesFor(cat.id).length;
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cat" + (state.category === cat.id ? " selected" : "");
+        btn.setAttribute("data-id", cat.id);
+        btn.innerHTML = '<span class="cat-name"></span><span class="cat-count"></span>';
+        btn.querySelector(".cat-name").textContent = cat.label;
+        btn.querySelector(".cat-count").textContent = count === 1 ? "1 navn" : (count + " navn");
+        (function (catId) {
+          onTap(btn, function () {
+            state.category = catId;
+            saveSettings();
+            renderMenu();
+          });
+        })(cat.id);
+        grid.appendChild(btn);
+      }
+      var start = $("btn-start");
+      var n = namesFor(state.category).length;
+      start.disabled = false;
+      start.textContent = n === 0 ? "Legg til navn først" : "Start runden";
+    }
+
+    function renderCustom() {
+      var names = getCustomNames();
+      $("custom-count").textContent = names.length ? (names.length + " navn lagret") : "Ingen egne navn ennå";
+      var ul = $("custom-list");
+      ul.innerHTML = "";
+      if (!names.length) {
+        ul.innerHTML = '<li class="empty-custom" style="display:block;background:transparent">Listen er tom.</li>';
+        return;
+      }
+      for (var i = 0; i < names.length; i++) {
+        (function (name) {
+          var li = document.createElement("li");
+          var span = document.createElement("span");
+          span.textContent = name;
+          var del = document.createElement("button");
+          del.type = "button";
+          del.textContent = "Fjern";
+          onTap(del, function () {
+            saveCustomNames(getCustomNames().filter(function (n) { return n !== name; }));
+            renderCustom();
+          });
+          li.appendChild(span);
+          li.appendChild(del);
+          ul.appendChild(li);
+        })(names[i]);
+      }
+    }
+
+    function addCustomFromString(text) {
+      var parts = String(text || "").split(/[\n,;]+/);
+      var names = getCustomNames();
+      var added = 0;
+      for (var i = 0; i < parts.length; i++) {
+        var n = parts[i].trim();
+        if (n) { names.push(n); added++; }
+      }
+      saveCustomNames(names);
+      return added;
+    }
+
+    function saveSettings() {
+      try {
+        storageSet(STORAGE_SETTINGS, JSON.stringify({
+          category: state.category,
+          duration: state.duration,
+          tiltOn: state.tiltOn,
+          tiltInverted: state.tiltInverted
+        }));
+      } catch (e) {}
+    }
+
+    function loadSettings() {
+      try {
+        var s = JSON.parse(storageGet(STORAGE_SETTINGS) || "null");
+        if (!s) return;
+        if (s.category) state.category = s.category;
+        if (s.duration === 60 || s.duration === 90 || s.duration === 120) state.duration = s.duration;
+        if (s.tiltInverted) state.tiltInverted = true;
+      } catch (e) {}
+    }
+
+    function fitName() {
+      var el = $("person-name");
+      if (!el || !el.textContent) return;
+      var wrap = el.parentElement;
+      var max = Math.min(wrap.clientWidth || window.innerWidth, 1200);
+      var h = Math.min(window.innerHeight * 0.42, 280);
+      var size = Math.min(max / 4.2, h, 140);
+      if (el.textContent.length > 16) size *= 0.82;
+      if (el.textContent.length > 22) size *= 0.85;
+      if (el.textContent.length > 28) size *= 0.85;
+      el.style.fontSize = Math.max(28, size) + "px";
+    }
+
+    function ensureAudio() {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        if (!audioCtx) audioCtx = new Ctx();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+      } catch (e) {}
+    }
+
+    function tone(freq, dur, type, vol, delay) {
+      if (!audioCtx) return;
+      var t0 = audioCtx.currentTime + (delay || 0);
+      var osc = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(Math.max(0.0001, vol || 0.08), t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }
+
+    function soundCorrect() {
+      ensureAudio();
+      tone(523.25, 0.1, "sine", 0.09, 0);
+      tone(783.99, 0.16, "sine", 0.1, 0.08);
+    }
+    function soundPass() {
+      ensureAudio();
+      tone(311, 0.12, "triangle", 0.07, 0);
+      tone(220, 0.16, "triangle", 0.06, 0.09);
+    }
+    function soundTick() {
+      ensureAudio();
+      tone(660, 0.09, "sine", 0.08, 0);
+    }
+    function soundGo() {
+      ensureAudio();
+      tone(523, 0.08, "sine", 0.08, 0);
+      tone(784, 0.18, "sine", 0.1, 0.08);
+    }
+    function soundEnd() {
+      ensureAudio();
+      tone(392, 0.12, "sine", 0.08, 0);
+      tone(349, 0.12, "sine", 0.08, 0.13);
+      tone(330, 0.28, "sine", 0.09, 0.26);
+    }
+
+    function vibrate(pattern) {
+      try {
+        if (navigator.vibrate) navigator.vibrate(pattern);
+      } catch (e) {}
+    }
+
+    async function requestWakeLock() {
+      try {
+        if (navigator.wakeLock) {
+          state.wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch (e) {
+        state.wakeLock = null;
+      }
+    }
+
+    async function releaseWakeLock() {
+      try {
+        if (state.wakeLock) {
+          await state.wakeLock.release();
+          state.wakeLock = null;
+        }
+      } catch (e) {
+        state.wakeLock = null;
+      }
+    }
+
+    function orientationAngle() {
+      if (screen.orientation && typeof screen.orientation.angle === "number") {
+        return screen.orientation.angle;
+      }
+      if (typeof window.orientation === "number") return window.orientation;
+      return window.innerWidth > window.innerHeight ? 90 : 0;
+    }
+
+    function pitchFromEvent(e) {
+      var beta = typeof e.beta === "number" ? e.beta : 0;
+      var gamma = typeof e.gamma === "number" ? e.gamma : 0;
+      var angle = orientationAngle();
+      var pitch;
+      if (angle === 90) pitch = gamma;
+      else if (angle === -90 || angle === 270) pitch = -gamma;
+      else if (angle === 180) pitch = 90 - beta;
+      else pitch = beta - 90;
+      if (state.tiltInverted) pitch = -pitch;
+      return pitch;
+    }
+
+    function onOrientation(e) {
+      state.lastOrientation = e;
+      if (!state.playing || !state.tiltOn || !state.accepting) return;
+      var pitch = pitchFromEvent(e);
+      if (state.baseline == null) {
+        state.baseline = pitch;
+        state.tiltState = "neutral";
+        return;
+      }
+      var delta = pitch - state.baseline;
+      if (state.tiltState === "neutral") {
+        if (delta < -28) {
+          state.tiltState = "down";
+          answer(true);
+        } else if (delta > 28) {
+          state.tiltState = "up";
+          answer(false);
+        }
+      } else if (Math.abs(delta) < 14) {
+        state.tiltState = "neutral";
+      }
+    }
+
+    function startTiltListening() {
+      if (state.tiltReady) return;
+      window.addEventListener("deviceorientation", onOrientation, true);
+      state.tiltReady = true;
+    }
+
+    async function enableTiltFromUserGesture() {
+      try {
+        if (typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function") {
+          var perm = await DeviceOrientationEvent.requestPermission();
+          if (perm !== "granted") {
+            state.tiltOn = false;
+            updateTiltUI();
+            alert("Tilt ble ikke tillatt. Du kan fortsatt spille ved å trykke på venstre og høyre side av skjermen.");
+            return false;
+          }
+        }
+        startTiltListening();
+        state.tiltOn = true;
+        updateTiltUI();
+        saveSettings();
+        return true;
+      } catch (err) {
+        state.tiltOn = false;
+        updateTiltUI();
+        alert("Kunne ikke starte tilt. Bruk trykk på venstre og høyre side i stedet.");
+        return false;
+      }
+    }
+
+    function updateTiltUI() {
+      $("tilt-toggle").classList.toggle("on", state.tiltOn);
+      $("tilt-toggle").setAttribute("aria-pressed", state.tiltOn ? "true" : "false");
+      $("invert-row").style.display = state.tiltOn ? "flex" : "none";
+      $("invert-toggle").classList.toggle("on", state.tiltInverted);
+      $("invert-toggle").setAttribute("aria-pressed", state.tiltInverted ? "true" : "false");
+    }
+
+    function nextName() {
+      if (!state.deck.length) {
+        endGame("empty");
+        return false;
+      }
+      state.current = state.deck.shift();
+      $("person-name").textContent = state.current;
+      fitName();
+      state.baseline = state.lastOrientation ? pitchFromEvent(state.lastOrientation) : null;
+      state.tiltState = "neutral";
+      return true;
+    }
+
+    function answer(correct) {
+      if (!state.playing || !state.accepting || !state.current) return;
+      state.accepting = false;
+      var name = state.current;
+      state.results.push({ name: name, correct: !!correct });
+      $("live-score").textContent = scoreCount() + " riktig";
+
+      var flash = $("game-flash");
+      var label = $("feedback-label");
+      flash.className = "game-flash " + (correct ? "green" : "red");
+      label.textContent = correct ? "Riktig!" : "Pass";
+      label.style.color = "#fff";
+      label.classList.add("show");
+      $("person-name").style.opacity = "0";
+
+      if (correct) {
+        soundCorrect();
+        vibrate(60);
+      } else {
+        soundPass();
+        vibrate([40, 40, 40]);
+      }
+
+      window.setTimeout(function () {
+        flash.className = "game-flash";
+        label.classList.remove("show");
+        $("person-name").style.opacity = "1";
+        if (!state.playing) return;
+        if (nextName()) state.accepting = true;
+      }, 420);
+    }
+
+    function scoreCount() {
+      var n = 0;
+      for (var i = 0; i < state.results.length; i++) {
+        if (state.results[i].correct) n++;
+      }
+      return n;
+    }
+
+    function clearTimers() {
+      if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
+      if (state.countId) { clearTimeout(state.countId); state.countId = null; }
+    }
+
+    function tickClock() {
+      $("game-timer").textContent = fmtTime(state.remaining);
+      $("count-timer").textContent = fmtTime(state.remaining);
+    }
+
+    function startClock() {
+      tickClock();
+      state.timerId = setInterval(function () {
+        state.remaining -= 1;
+        tickClock();
+        if (state.remaining <= 0) endGame("time");
+      }, 1000);
+    }
+
+    async function tryFullscreen() {
+      var el = document.documentElement;
+      try {
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      } catch (e) {}
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock("landscape");
+        }
+      } catch (e) {}
+    }
+
+    async function exitFullscreen() {
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen();
+      } catch (e) {}
+    }
+
+    function startCountdown() {
+      var list = namesFor(state.category);
+      if (!list.length) return;
+      ensureAudio();
+      state.deck = shuffle(list);
+      state.results = [];
+      state.current = "";
+      state.remaining = state.duration;
+      state.playing = false;
+      state.accepting = false;
+      state.baseline = null;
+      state.tiltState = "neutral";
+      $("live-score").textContent = "0 riktig";
+      tickClock();
+      showScreen("screen-countdown");
+      Promise.resolve(requestWakeLock()).catch(function () {});
+      Promise.resolve(tryFullscreen()).catch(function () {});
+
+      var steps = ["3", "2", "1", "Start!"];
+      var i = 0;
+      function step() {
+        $("count-num").textContent = steps[i];
+        $("count-num").style.animation = "none";
+        void $("count-num").offsetWidth;
+        $("count-num").style.animation = "pop 0.45s ease";
+        if (i < 3) soundTick();
+        else soundGo();
+        i += 1;
+        if (i < steps.length) {
+          state.countId = setTimeout(step, 800);
+        } else {
+          state.countId = setTimeout(beginPlay, 550);
+        }
+      }
+      step();
+    }
+
+    function beginPlay() {
+      state.playing = true;
+      state.accepting = true;
+      showScreen("screen-game");
+      nextName();
+      startClock();
+      fitName();
+    }
+
+    function endGame(reason) {
+      if (!state.playing && $("screen-end").classList.contains("active")) return;
+      state.playing = false;
+      state.accepting = false;
+      clearTimers();
+      releaseWakeLock();
+      exitFullscreen();
+      soundEnd();
+      vibrate([30, 40, 80]);
+
+      var score = scoreCount();
+      var total = state.results.length;
+      var title = "Tiden er ute!";
+      if (reason === "empty") title = "Tom for navn!";
+      else if (reason === "abort") title = "Runden er over!";
+      $("end-title").textContent = title;
+      $("end-score").textContent = String(score);
+      var bits = [];
+      bits.push(score === 1 ? "1 riktig" : (score + " riktige"));
+      bits.push(total ? ("av " + total + " navn") : "ingen navn denne runden");
+      $("end-sub").textContent = bits.join(" ");
+
+      var ul = $("results");
+      ul.innerHTML = "";
+      if (!total) {
+        var empty = document.createElement("li");
+        empty.textContent = "Ingen navn ble spilt.";
+        ul.appendChild(empty);
+      }
+      for (var i = 0; i < state.results.length; i++) {
+        var r = state.results[i];
+        var li = document.createElement("li");
+        var n = document.createElement("span");
+        n.textContent = r.name;
+        var m = document.createElement("span");
+        m.className = "mark " + (r.correct ? "ok" : "pass");
+        m.textContent = r.correct ? "Riktig" : "Pass";
+        li.appendChild(n);
+        li.appendChild(m);
+        ul.appendChild(li);
+      }
+      showScreen("screen-end");
+    }
+
+    var tapLocks = [];
+    function onTap(el, handler) {
+      if (!el) return;
+      function fire(ev) {
+        var now = Date.now();
+        var i, last = 0;
+        for (i = 0; i < tapLocks.length; i++) {
+          if (tapLocks[i].el === el) { last = tapLocks[i].t; break; }
+        }
+        if (now - last < 350) return;
+        if (i === tapLocks.length) tapLocks.push({ el: el, t: now });
+        else tapLocks[i].t = now;
+        try { handler(ev || null); } catch (err) { console.error(err); }
+      }
+      el.addEventListener("click", fire);
+      el.addEventListener("pointerup", function (ev) {
+        if (typeof ev.button === "number" && ev.button !== 0) return;
+        fire(ev);
+      });
+      el.addEventListener("touchend", function (ev) {
+        fire(ev);
+      }, { passive: true });
+    }
+
+    function onHit(correct) {
+      answer(correct);
+    }
+
+    function bindHits(el, correct) {
+      if (!el) return;
+      function go(ev) {
+        if (ev && typeof ev.button === "number" && ev.button !== 0) return;
+        onHit(correct);
+      }
+      el.addEventListener("pointerdown", go);
+      el.addEventListener("click", go);
+      el.addEventListener("touchstart", go, { passive: true });
+    }
+
+    // Meny
+    onTap(document.getElementById("duration-pills"), function (e) {
+      if (!e || !e.target) return;
+      var btn = e.target.closest ? e.target.closest(".pill") : e.target;
+      if (!btn || !btn.getAttribute) {
+        var n = e.target;
+        while (n && n !== e.currentTarget) {
+          if (n.className && String(n.className).indexOf("pill") !== -1) { btn = n; break; }
+          n = n.parentNode;
+        }
+      }
+      if (!btn || !btn.getAttribute || !btn.getAttribute("data-sec")) return;
+      state.duration = parseInt(btn.getAttribute("data-sec"), 10);
+      var pills = document.querySelectorAll("#duration-pills .pill");
+      for (var i = 0; i < pills.length; i++) {
+        pills[i].classList.toggle("selected", pills[i] === btn);
+      }
+      saveSettings();
+    });
+
+    onTap($("tilt-toggle"), function () {
+      if (state.tiltOn) {
+        state.tiltOn = false;
+        updateTiltUI();
+        saveSettings();
+      } else {
+        enableTiltFromUserGesture();
+      }
+    });
+
+    onTap($("invert-toggle"), function () {
+      state.tiltInverted = !state.tiltInverted;
+      updateTiltUI();
+      saveSettings();
+    });
+
+    onTap($("btn-start"), function () {
+      if (!namesFor(state.category).length) {
+        renderCustom();
+        showScreen("screen-custom");
+        return;
+      }
+      ensureAudio();
+      startCountdown();
+    });
+
+    onTap($("btn-custom"), function () {
+      renderCustom();
+      showScreen("screen-custom");
+    });
+
+    onTap($("custom-back"), function () {
+      renderMenu();
+      showScreen("screen-menu");
+    });
+
+    onTap($("custom-add-btn"), function () {
+      var input = $("custom-input");
+      addCustomFromString(input.value);
+      input.value = "";
+      renderCustom();
+    });
+
+    $("custom-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        if (e.preventDefault) e.preventDefault();
+        addCustomFromString(this.value);
+        this.value = "";
+        renderCustom();
+      }
+    });
+
+    onTap($("custom-bulk-btn"), function () {
+      var area = $("custom-bulk");
+      addCustomFromString(area.value);
+      area.value = "";
+      renderCustom();
+    });
+
+    bindHits($("hit-left"), false);
+    bindHits($("hit-right"), true);
+
+    onTap($("btn-abort"), function () {
+      if (state.playing) endGame("abort");
+    });
+
+    onTap($("btn-again"), function () {
+      ensureAudio();
+      startCountdown();
+    });
+
+    onTap($("btn-home"), function () {
+      renderMenu();
+      showScreen("screen-menu");
+    });
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && (state.playing || $("screen-countdown").classList.contains("active"))) {
+        requestWakeLock();
+      }
+    });
+
+    window.addEventListener("resize", function () {
+      if (state.playing) fitName();
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (!state.playing || !state.accepting) return;
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        answer(true);
+      } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
+        e.preventDefault();
+        answer(false);
+      }
+    });
+
+    loadSettings();
+    if (!namesFor(state.category).length) {
+      state.category = "norske";
+    }
+    var pills = document.querySelectorAll("#duration-pills .pill");
+    for (var p = 0; p < pills.length; p++) {
+      pills[p].classList.toggle("selected", parseInt(pills[p].getAttribute("data-sec"), 10) === state.duration);
+    }
+    updateTiltUI();
+    renderMenu();
+    document.body.setAttribute("data-ready", "1");
+    } // boot
+  })();
+  </script>
+</body>
+</html>
